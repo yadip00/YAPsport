@@ -31,6 +31,7 @@ interface StoreContextType {
   formatPrice: (price: number) => string;
   generateWhatsAppUrl: (invoice: Invoice) => string;
   resetAllData: () => void;
+  isLoading: boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -79,6 +80,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem('yap_invoices');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
+
+  const isLoading = isLoadingProducts || isLoadingSettings || isLoadingInvoices;
 
   const [activePanel, setActivePanel] = useState<'store' | 'admin'>(() => {
     const saved = localStorage.getItem('yap_active_panel');
@@ -145,30 +152,54 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         INITIAL_PRODUCTS.forEach((prod) => {
           batch.set(doc(db, 'products', prod.id), prod);
         });
-        batch.commit().catch((err) =>
-          console.error('Error seeding products batch to Firestore:', err)
-        );
+        batch.commit()
+          .then(() => {
+            // Seeding committed, next snapshot trigger will update local state and resolve loading
+          })
+          .catch((err) => {
+            console.error('Error seeding products batch to Firestore:', err);
+            setIsLoadingProducts(false);
+          });
       } else {
-        const firestoreProds = snapshot.docs.map((d) => d.data() as Product);
+        const firestoreProds = snapshot.docs.map((d) => {
+          const prod = d.data() as Product;
+          // Self-heal local image paths by resolving them to the correct runtime bundled assets
+          if (prod.image && !prod.image.startsWith('http') && !prod.image.startsWith('data:')) {
+            const initialProd = INITIAL_PRODUCTS.find(p => p.id === prod.id);
+            if (initialProd) {
+              return { ...prod, image: initialProd.image };
+            }
+          }
+          return prod;
+        });
         // Sort products using natural sort so the order matches INITIAL_PRODUCTS or custom products order
         firestoreProds.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
         setProducts(firestoreProds);
+        setIsLoadingProducts(false);
       }
     }, (error) => {
       console.error("Firestore products read error:", error);
+      setIsLoadingProducts(false);
     });
 
     const unsubSettings = onSnapshot(doc(db, 'settings', 'store_settings'), (snapshot) => {
       if (!snapshot.exists()) {
         // Seed initial settings to Firestore
-        setDoc(doc(db, 'settings', 'store_settings'), INITIAL_SETTINGS).catch((err) =>
-          console.error('Error seeding settings to Firestore:', err)
-        );
+        setDoc(doc(db, 'settings', 'store_settings'), INITIAL_SETTINGS)
+          .then(() => {
+            // Seeding committed, next snapshot trigger will update local state and resolve loading
+          })
+          .catch((err) => {
+            console.error('Error seeding settings to Firestore:', err);
+            setIsLoadingSettings(false);
+          });
       } else {
         setSettings(snapshot.data() as StoreSettings);
+        setIsLoadingSettings(false);
       }
     }, (error) => {
       console.error("Firestore settings read error:", error);
+      setIsLoadingSettings(false);
     });
 
     const unsubInvoices = onSnapshot(collection(db, 'invoices'), (snapshot) => {
@@ -180,8 +211,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         setInvoices([]);
       }
+      setIsLoadingInvoices(false);
     }, (error) => {
       console.error("Firestore invoices read error:", error);
+      setIsLoadingInvoices(false);
     });
 
     return () => {
@@ -460,7 +493,8 @@ _Mohon instruksi selanjutnya untuk pembayaran dan pengiriman barang. Terima kasi
       createInvoice,
       formatPrice,
       generateWhatsAppUrl,
-      resetAllData
+      resetAllData,
+      isLoading
     }}>
       {children}
     </StoreContext.Provider>

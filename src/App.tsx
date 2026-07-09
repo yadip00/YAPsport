@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 function AppContent() {
   const { 
     products, settings, activePanel, formatPrice, isAdminAuthenticated,
-    isCustomerAuthenticated
+    isCustomerAuthenticated, isLoading
   } = useStore();
 
   // Dialog overlay controls
@@ -31,10 +31,24 @@ function AppContent() {
 
   // Automatically open Visitor Login modal if forced in settings and not authenticated
   useEffect(() => {
-    if (settings.requireVisitorLogin && !isCustomerAuthenticated) {
+    if (!isLoading && settings.requireVisitorLogin && !isCustomerAuthenticated) {
       setIsVisitorLoginOpen(true);
     }
-  }, [settings.requireVisitorLogin, isCustomerAuthenticated]);
+  }, [isLoading, settings.requireVisitorLogin, isCustomerAuthenticated]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center font-sans p-6" id="app-loading-screen">
+        <div className="relative flex items-center justify-center">
+          <div className="w-16 h-16 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
+          <div className="absolute w-10 h-10 border-4 border-emerald-500/20 border-b-emerald-500 rounded-full animate-spin [animation-direction:reverse]"></div>
+        </div>
+        <div className="text-zinc-400 font-black text-xs sm:text-sm tracking-widest uppercase mt-6 animate-pulse">
+          Menghubungkan ke Database...
+        </div>
+      </div>
+    );
+  }
 
   const handleSelectProduct = (prod: any) => {
     if (settings.requireVisitorLogin && !isCustomerAuthenticated) {
