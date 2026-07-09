@@ -1,0 +1,37 @@
+{
+  "collections": {
+    "products": {
+      "schema": {
+        "id": "string",
+        "name": "string",
+        "category": "string",
+        "price": "number",
+        "image": "string",
+        "description": "string",
+        "stock": "number",
+        "sizes": "array"
+      }
+    },
+    "settings": {
+      "schema": {
+        "storeName": "string",
+        "storeTagline": "string",
+        "whatsappNumber": "string",
+        "currencySymbol": "string",
+        "shippingFee": "number"
+      }
+    },
+    "invoices": {
+      "schema": {
+        "id": "string",
+        "customer": "map",
+        "items": "array",
+        "totalPrice": "number",
+        "shippingFee": "number",
+        "grandTotal": "number",
+        "createdAt": "string",
+        "status": "string"
+      }
+    }
+  }
+}

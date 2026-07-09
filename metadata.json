@@ -1,0 +1,8 @@
+{
+  "name": "Yap Sports Webstore",
+  "description": "A fully functional e-commerce marketplace for sports apparel and soccer jerseys with a slide-out shopping cart, WhatsApp checkout invoicing, and a complete admin catalog control panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
