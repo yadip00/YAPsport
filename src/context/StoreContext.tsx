@@ -1,8 +1,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, StoreSettings, Invoice, CustomerDetails } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_SETTINGS } from '../data/initialProducts';
-import { collection, onSnapshot, setDoc, doc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, setDoc, doc, deleteDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+
+const cleanUndefined = <T,>(obj: T): T => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanUndefined(item)) as any;
+  }
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj as any)) {
+      const val = (obj as any)[key];
+      if (val !== undefined) {
+        cleaned[key] = cleanUndefined(val);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+};
 
 interface StoreContextType {
   products: Product[];
@@ -12,6 +30,7 @@ interface StoreContextType {
   activePanel: 'store' | 'admin';
   setActivePanel: (panel: 'store' | 'admin') => void;
   isAdminAuthenticated: boolean;
+  userRole: 'admin' | 'kasir' | null;
   loginAdmin: (email: string, pass: string) => boolean;
   logoutAdmin: () => void;
   isCustomerAuthenticated: boolean;
@@ -28,6 +47,14 @@ interface StoreContextType {
   updateCartQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
   createInvoice: (customer: CustomerDetails) => Invoice;
+  createPOSInvoice: (
+    items: { productId: string; name: string; quantity: number; price: number; size?: string }[],
+    paymentMethod: 'cash' | 'transfer' | 'qris',
+    amountPaid: number,
+    discountPercent: number,
+    taxPercent: number,
+    cashierName: string
+  ) => Promise<Invoice>;
   formatPrice: (price: number) => string;
   generateWhatsAppUrl: (invoice: Invoice) => string;
   resetAllData: () => void;
@@ -94,16 +121,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('yap_admin_auth') === 'true';
   });
+  const [userRole, setUserRole] = useState<'admin' | 'kasir' | null>(() => {
+    return localStorage.getItem('yap_user_role') as 'admin' | 'kasir' | null;
+  });
 
   const loginAdmin = (email: string, pass: string): boolean => {
     const cleanEmail = email.trim().toLowerCase();
-    // Allow either YAPStore/123456 or admin@yapstore.com/admin123
+    // Allow either YAPStore/123456 or admin@yapstore.com/admin123 for Admin
     if (
       (cleanEmail === 'yapstore' && pass === '123456') ||
       ((cleanEmail === 'admin@yapstore.com' || cleanEmail === 'admin@gmail.com') && pass === 'admin123')
     ) {
       setIsAdminAuthenticated(true);
+      setUserRole('admin');
       localStorage.setItem('yap_admin_auth', 'true');
+      localStorage.setItem('yap_user_role', 'admin');
+      return true;
+    }
+    // Allow either kasir/123456 or kasir@yapstore.com/kasir123 for Kasir
+    else if (
+      (cleanEmail === 'kasir' || cleanEmail === 'kasiryap' || cleanEmail === 'kasir@yapstore.com') &&
+      (pass === '123456' || pass === 'kasir123')
+    ) {
+      setIsAdminAuthenticated(true);
+      setUserRole('kasir');
+      localStorage.setItem('yap_admin_auth', 'true');
+      localStorage.setItem('yap_user_role', 'kasir');
       return true;
     }
     return false;
@@ -111,7 +154,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
+    setUserRole(null);
     localStorage.removeItem('yap_admin_auth');
+    localStorage.removeItem('yap_user_role');
     setActivePanel('store');
   };
 
@@ -275,13 +320,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `prod-${Date.now()}`
     };
     // Sync to Firestore
-    setDoc(doc(db, 'products', product.id), product).catch(err => console.error("Error adding product to Firestore:", err));
+    setDoc(doc(db, 'products', product.id), cleanUndefined(product)).catch(err => console.error("Error adding product to Firestore:", err));
     setProducts(prev => [product, ...prev]);
   };
 
   const updateProduct = (updatedProd: Product) => {
     // Sync to Firestore
-    setDoc(doc(db, 'products', updatedProd.id), updatedProd).catch(err => console.error("Error updating product to Firestore:", err));
+    setDoc(doc(db, 'products', updatedProd.id), cleanUndefined(updatedProd)).catch(err => console.error("Error updating product to Firestore:", err));
     setProducts(prev => prev.map(p => p.id === updatedProd.id ? updatedProd : p));
     // also update corresponding products in the cart if their price/image changed
     setCart(prev => prev.map(item => {
@@ -301,7 +346,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateSettings = (newSettings: StoreSettings) => {
     // Sync to Firestore
-    setDoc(doc(db, 'settings', 'store_settings'), newSettings).catch(err => console.error("Error updating settings to Firestore:", err));
+    setDoc(doc(db, 'settings', 'store_settings'), cleanUndefined(newSettings)).catch(err => console.error("Error updating settings to Firestore:", err));
     setSettings(newSettings);
   };
 
@@ -347,14 +392,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Create invoice log
   const createInvoice = (customer: CustomerDetails): Invoice => {
-    const items = cart.map(item => ({
-      productId: item.product.id,
-      productName: item.product.name,
-      size: item.selectedSize,
-      price: item.product.price,
-      quantity: item.quantity,
-      subtotal: item.product.price * item.quantity
-    }));
+    const items = cart.map(item => {
+      const mappedItem: any = {
+        productId: item.product.id,
+        productName: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        subtotal: item.product.price * item.quantity
+      };
+      if (item.selectedSize !== undefined && item.selectedSize !== null) {
+        mappedItem.size = item.selectedSize;
+      }
+      return mappedItem;
+    });
 
     const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0);
     const shippingFee = customer.shippingMethod === 'pickup' ? 0 : settings.shippingFee;
@@ -372,7 +422,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     // 1. Write invoice to Firestore
-    setDoc(doc(db, 'invoices', invoice.id), invoice).catch(err => console.error("Error saving invoice to Firestore:", err));
+    setDoc(doc(db, 'invoices', invoice.id), cleanUndefined(invoice)).catch(err => console.error("Error saving invoice to Firestore:", err));
 
     // 2. Update stock of products in local state and Firestore!
     const updatedProducts = products.map(p => {
@@ -381,7 +431,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const newStock = Math.max(0, p.stock - purchasedItem.quantity);
         const updated = { ...p, stock: newStock };
         // Sync new stock to Firestore
-        setDoc(doc(db, 'products', p.id), updated).catch(err => console.error("Error updating product stock to Firestore:", err));
+        setDoc(doc(db, 'products', p.id), cleanUndefined(updated)).catch(err => console.error("Error updating product stock to Firestore:", err));
         return updated;
       }
       return p;
@@ -391,6 +441,117 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts(updatedProducts);
 
     return invoice;
+  };
+
+  const createPOSInvoice = async (
+    items: { productId: string; name: string; quantity: number; price: number; size?: string }[],
+    paymentMethod: 'cash' | 'transfer' | 'qris',
+    amountPaid: number,
+    discountPercent: number,
+    taxPercent: number,
+    cashierName: string
+  ): Promise<Invoice> => {
+    const invoiceId = `YAP-POS-${Date.now().toString().slice(-6)}`;
+
+    const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discountAmount = Math.round(totalPrice * (discountPercent / 100));
+    const taxableAmount = totalPrice - discountAmount;
+    const taxAmount = Math.round(taxableAmount * (taxPercent / 100));
+    const grandTotal = taxableAmount + taxAmount;
+
+    const invoice: Invoice = {
+      id: invoiceId,
+      customer: {
+        name: 'Pelanggan POS / Kasir',
+        phone: '-',
+        address: 'Penjualan Langsung Toko (POS)',
+        shippingMethod: 'pickup',
+        notes: `Pembayaran: ${paymentMethod.toUpperCase()}`
+      },
+      items: items.map(item => {
+        const mappedItem: any = {
+          productId: item.productId,
+          productName: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          subtotal: item.price * item.quantity
+        };
+        if (item.size !== undefined && item.size !== null) {
+          mappedItem.size = item.size;
+        }
+        return mappedItem;
+      }),
+      totalPrice,
+      shippingFee: 0,
+      grandTotal,
+      createdAt: new Date().toISOString(),
+      status: 'sent',
+      paymentMethod,
+      amountPaid,
+      change: paymentMethod === 'cash' ? Math.max(0, amountPaid - grandTotal) : 0,
+      discountPercent,
+      taxPercent,
+      cashierName,
+      isPOS: true
+    };
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        // Fetch all product docs inside the transaction
+        const productRefs = items.map(item => doc(db, 'products', item.productId));
+        const productSnapshots = await Promise.all(
+          productRefs.map(ref => transaction.get(ref))
+        );
+
+        const updates: { ref: any; updatedProduct: Product }[] = [];
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const snap = productSnapshots[i];
+          
+          if (!snap.exists()) {
+            throw new Error(`Produk "${item.name}" tidak ditemukan di database!`);
+          }
+
+          const dbProd = snap.data() as Product;
+          if (dbProd.stock < item.quantity) {
+            throw new Error(`Stok "${item.name}" tidak mencukupi! Tersedia: ${dbProd.stock}, diminta: ${item.quantity}`);
+          }
+
+          const newStock = dbProd.stock - item.quantity;
+          updates.push({
+            ref: snap.ref,
+            updatedProduct: { ...dbProd, stock: newStock }
+          });
+        }
+
+        // Apply all stock updates in the transaction
+        for (const update of updates) {
+          transaction.set(update.ref, cleanUndefined(update.updatedProduct));
+        }
+
+        // Save POS invoice log
+        const invoiceRef = doc(db, 'invoices', invoiceId);
+        transaction.set(invoiceRef, cleanUndefined(invoice));
+      });
+
+      // Update local state if transaction succeeds
+      setProducts(prev => {
+        return prev.map(p => {
+          const purchased = items.find(item => item.productId === p.id);
+          if (purchased) {
+            return { ...p, stock: Math.max(0, p.stock - purchased.quantity) };
+          }
+          return p;
+        });
+      });
+      setInvoices(prev => [invoice, ...prev]);
+
+      return invoice;
+    } catch (error: any) {
+      console.error("Firestore POS Transaction Failed:", error);
+      throw new Error(error.message || "Gagal memproses transaksi karena kesalahan database.");
+    }
   };
 
   // Generate WhatsApp Redirect Link with Indonesia Country Code validation
@@ -494,6 +655,7 @@ _Mohon instruksi selanjutnya untuk pembayaran dan pengiriman barang. Terima kasi
       activePanel,
       setActivePanel,
       isAdminAuthenticated,
+      userRole,
       loginAdmin,
       logoutAdmin,
       isCustomerAuthenticated,
@@ -510,6 +672,7 @@ _Mohon instruksi selanjutnya untuk pembayaran dan pengiriman barang. Terima kasi
       updateCartQuantity,
       clearCart,
       createInvoice,
+      createPOSInvoice,
       formatPrice,
       generateWhatsAppUrl,
       resetAllData,

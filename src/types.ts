@@ -51,4 +51,11 @@ export interface Invoice {
   grandTotal: number;
   createdAt: string;
   status: 'pending' | 'sent';
+  paymentMethod?: 'cash' | 'transfer' | 'qris';
+  amountPaid?: number;
+  change?: number;
+  discountPercent?: number;
+  taxPercent?: number;
+  cashierName?: string;
+  isPOS?: boolean;
 }

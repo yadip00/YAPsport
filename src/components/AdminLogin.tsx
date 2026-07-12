@@ -67,19 +67,38 @@ export const AdminLogin: React.FC = () => {
         </div>
 
         {/* Informational Credentials Box */}
-        <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4.5 space-y-2">
-          <span className="text-[10px] font-black tracking-widest text-red-500 uppercase flex items-center gap-1.5">
-            <Sparkles className="h-3 w-3 animate-pulse" />
-            <span>Kredensial Login Kasir</span>
-          </span>
-          <div className="space-y-1 text-xs text-zinc-400 font-medium">
-            <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
-              <span className="text-zinc-500">Username:</span>
-              <span className="font-mono text-zinc-200 select-all font-bold">YAPStore</span>
+        <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-4.5 space-y-3">
+          <div>
+            <span className="text-[10px] font-black tracking-widest text-red-500 uppercase flex items-center gap-1.5 mb-1.5">
+              <Sparkles className="h-3 w-3 animate-pulse" />
+              <span>Login Akun Kasir (POS Only)</span>
+            </span>
+            <div className="space-y-1 text-xs text-zinc-400 font-medium">
+              <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
+                <span className="text-zinc-500">Username:</span>
+                <span className="font-mono text-zinc-200 select-all font-bold">kasir</span>
+              </div>
+              <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
+                <span className="text-zinc-500">Sandi:</span>
+                <span className="font-mono text-red-400 font-extrabold select-all">123456</span>
+              </div>
             </div>
-            <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
-              <span className="text-zinc-500">Kata Sandi:</span>
-              <span className="font-mono text-red-400 font-extrabold select-all">123456</span>
+          </div>
+
+          <div className="pt-2.5 border-t border-zinc-850">
+            <span className="text-[10px] font-black tracking-widest text-zinc-400 uppercase flex items-center gap-1.5 mb-1.5">
+              <Sparkles className="h-3 w-3 text-red-500" />
+              <span>Login Akun Admin Utama</span>
+            </span>
+            <div className="space-y-1 text-xs text-zinc-400 font-medium">
+              <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
+                <span className="text-zinc-500">Username:</span>
+                <span className="font-mono text-zinc-200 select-all font-bold">YAPStore</span>
+              </div>
+              <div className="flex justify-between items-center bg-zinc-900/40 p-2 rounded-lg border border-zinc-800/50">
+                <span className="text-zinc-500">Sandi:</span>
+                <span className="font-mono text-red-400 font-extrabold select-all">123456</span>
+              </div>
             </div>
           </div>
         </div>

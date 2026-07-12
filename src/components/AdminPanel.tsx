@@ -3,20 +3,27 @@ import { useStore } from '../context/StoreContext';
 import { Product, StoreSettings, Invoice } from '../types';
 import { 
   TrendingUp, DollarSign, Package, ClipboardList, Settings, Plus, Edit, Trash2, 
-  Check, Save, AlertTriangle, Upload, X, CheckSquare, Search, ChevronRight, LogOut
+  Check, Save, AlertTriangle, Upload, X, CheckSquare, Search, ChevronRight, LogOut,
+  Barcode
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { POSPanel } from './POSPanel';
 
-type AdminTab = 'dashboard' | 'products' | 'transactions' | 'settings';
+type AdminTab = 'dashboard' | 'products' | 'transactions' | 'settings' | 'pos';
 
 export const AdminPanel: React.FC = () => {
   const { 
     products, settings, invoices, addProduct, updateProduct, deleteProduct, 
-    updateSettings, formatPrice, logoutAdmin, resetAllData
+    updateSettings, formatPrice, logoutAdmin, resetAllData, userRole
   } = useStore();
+
+  // If the user's role is 'kasir', only show the cashier POS Panel
+  if (userRole === 'kasir') {
+    return <POSPanel />;
+  }
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
 
@@ -273,7 +280,8 @@ export const AdminPanel: React.FC = () => {
             { id: 'dashboard', label: 'Ringkasan', icon: TrendingUp },
             { id: 'products', label: 'Kelola Produk', icon: Package },
             { id: 'transactions', label: 'Transaksi WA', icon: ClipboardList },
-            { id: 'settings', label: 'Pengaturan Toko', icon: Settings }
+            { id: 'settings', label: 'Pengaturan Toko', icon: Settings },
+            { id: 'pos', label: 'Kasir (POS)', icon: Barcode }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -1001,6 +1009,19 @@ export const AdminPanel: React.FC = () => {
                 </button>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* TAB 5: POS (POINT OF SALE) */}
+        {activeTab === 'pos' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-8"
+            id="admin-view-pos"
+          >
+            <POSPanel />
           </motion.div>
         )}
       </AnimatePresence>
