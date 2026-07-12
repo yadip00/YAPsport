@@ -376,12 +376,17 @@ function AppContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 pb-8 border-b border-zinc-800">
             {/* Branding block */}
             <div className="space-y-3">
-              <span className="text-red-500 font-extrabold text-2xl tracking-wider italic">YAP STORE</span>
+              <div className="flex items-center space-x-2">
+                <div className="bg-red-600 text-white font-black text-xs sm:text-sm px-2.5 py-1 rounded-lg tracking-wider italic flex items-center shadow shadow-red-600/20">
+                  YAP
+                </div>
+                <span className="text-white font-black text-md sm:text-lg tracking-wider italic">YAP SPORT & APPAREL</span>
+              </div>
               <p className="text-zinc-400 leading-relaxed text-[11px]">
                 {settings.storeTagline}
               </p>
               <p className="text-zinc-500 text-[10px]">
-                © {new Date().getFullYear()} Yap Sports & Apparel. All Rights Reserved.
+                © {new Date().getFullYear()} YAP Sport & Apparel. All Rights Reserved.
               </p>
             </div>
 

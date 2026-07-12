@@ -251,7 +251,7 @@ export const AdminPanel: React.FC = () => {
           <div className="flex items-center gap-3">
             <h1 className="text-white font-black text-2xl sm:text-3xl flex items-center gap-2 tracking-tight">
               <Settings className="text-red-500 h-8 w-8 animate-spin-slow" />
-              <span>Portal Admin Webstore Yap</span>
+              <span>Portal Admin Webstore YAP</span>
             </h1>
             <button
               onClick={logoutAdmin}
@@ -808,7 +808,7 @@ export const AdminPanel: React.FC = () => {
           >
             <h3 className="text-white font-black text-lg mb-6 pb-3 border-b border-zinc-800 flex items-center gap-1.5">
               <Settings className="text-red-500 h-5 w-5" />
-              <span>Konfigurasi Webstore Yap</span>
+              <span>Konfigurasi Webstore YAP</span>
             </h3>
 
             <form onSubmit={handleSaveSettings} className="space-y-5 text-xs sm:text-sm">

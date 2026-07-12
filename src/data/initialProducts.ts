@@ -97,7 +97,7 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const INITIAL_SETTINGS: StoreSettings = {
-  storeName: 'Yap Sports & Apparel',
+  storeName: 'YAP Sport & Apparel',
   storeTagline: 'Pusat Jersey Bola Premium & Perlengkapan Olahraga UMKM Terlengkap',
   whatsappNumber: '628123456789', // Default WhatsApp number for the merchant (Indonesia format)
   address: 'Jl. Pemuda No. 45, Kota Yogyakarta, DI Yogyakarta 55122',

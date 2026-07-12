@@ -122,7 +122,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between">
             <div>
               {/* Product title & price */}
-              <span className="text-xs text-zinc-500 font-bold uppercase tracking-widest block mb-1">Yap Store Catalog</span>
+              <span className="text-xs text-zinc-500 font-bold uppercase tracking-widest block mb-1">YAP Store Catalog</span>
               <h2 className="text-white text-xl sm:text-2xl font-black leading-tight mb-2">
                 {product.name}
               </h2>

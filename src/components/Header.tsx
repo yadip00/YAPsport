@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
               YAP
             </motion.div>
             <div className="hidden md:block">
-              <span className="text-sm font-black text-white block leading-tight tracking-tight">SPORTS & APPAREL</span>
+              <span className="text-sm font-black text-white block leading-tight tracking-tight">YAP SPORT & APPAREL</span>
               <span className="text-xs text-red-500 font-mono tracking-tight block">UMKM Webstore</span>
             </div>
           </div>
