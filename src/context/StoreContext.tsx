@@ -194,7 +194,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setIsLoadingSettings(false);
           });
       } else {
-        setSettings(snapshot.data() as StoreSettings);
+        const rawSettings = snapshot.data() as StoreSettings;
+        let finalSettings = { ...rawSettings };
+        let needsUpdate = false;
+
+        if (finalSettings.storeName && finalSettings.storeName.includes('Yap')) {
+          finalSettings.storeName = finalSettings.storeName.replace(/Yap/g, 'YAP');
+          needsUpdate = true;
+        }
+        if (finalSettings.storeName && finalSettings.storeName.includes('Sports & Apparel')) {
+          finalSettings.storeName = finalSettings.storeName.replace('Sports & Apparel', 'Sport & Apparel');
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          setDoc(doc(db, 'settings', 'store_settings'), finalSettings).catch(err => 
+            console.error('Error auto-updating store settings to YAP in Firestore:', err)
+          );
+        }
+
+        setSettings(finalSettings);
         setIsLoadingSettings(false);
       }
     }, (error) => {
