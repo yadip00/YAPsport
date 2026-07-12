@@ -36,11 +36,34 @@ function AppContent() {
     }
   }, [isLoading, settings.requireVisitorLogin, isCustomerAuthenticated]);
 
-  // Dynamically update browser tab title to match store name
+  // Dynamically update browser tab title and favicon to match store name
   useEffect(() => {
     if (settings && settings.storeName) {
       document.title = settings.storeName;
     }
+
+    // High quality red YAP logo SVG favicon base64
+    const faviconBase64 = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3QgeD0iMCIgeT0iNSIgd2lkdGg9IjMyIiBoZWlnaHQ9IjIyIiByeD0iNiIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjE2IiB5PSIyMSIgZm9udC1mYW1pbHk9IidBcmlhbCBCbGFjaycsICdJbXBhY3QnLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iOTAwIiBmb250LXN0eWxlPSJpdGFsaWMiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPllBUDwvdGV4dD48L3N2Zz4=";
+    const faviconUrl = `data:image/svg+xml;base64,${faviconBase64}`;
+
+    // Select existing or create new link tags
+    const linkSelectors = ['link[rel="icon"]', 'link[rel="shortcut icon"]', 'link[rel="apple-touch-icon"]'];
+    linkSelectors.forEach(selector => {
+      let linkElement: HTMLLinkElement | null = document.querySelector(selector);
+      if (!linkElement) {
+        linkElement = document.createElement('link');
+        if (selector.includes('shortcut')) {
+          linkElement.rel = 'shortcut icon';
+        } else if (selector.includes('apple')) {
+          linkElement.rel = 'apple-touch-icon';
+        } else {
+          linkElement.rel = 'icon';
+        }
+        document.head.appendChild(linkElement);
+      }
+      linkElement.type = selector.includes('apple') ? '' : 'image/svg+xml';
+      linkElement.href = faviconUrl;
+    });
   }, [settings?.storeName]);
 
   if (isLoading) {
