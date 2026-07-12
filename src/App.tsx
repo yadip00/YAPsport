@@ -36,6 +36,13 @@ function AppContent() {
     }
   }, [isLoading, settings.requireVisitorLogin, isCustomerAuthenticated]);
 
+  // Dynamically update browser tab title to match store name
+  useEffect(() => {
+    if (settings && settings.storeName) {
+      document.title = settings.storeName;
+    }
+  }, [settings?.storeName]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center font-sans p-6" id="app-loading-screen">
